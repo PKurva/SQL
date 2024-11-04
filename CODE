@@ -1,0 +1,57 @@
+import sqlite3
+from faker import Faker
+
+fake = Faker()
+
+conn = sqlite3.connect('shoe_database.db')
+c = conn.cursor()
+
+# Create Brands table
+c.execute('''CREATE TABLE IF NOT EXISTS Brands (
+               BrandID INTEGER PRIMARY KEY,
+               BrandName TEXT NOT NULL,
+               Country TEXT,
+               FoundingYear INTEGER,
+               CEO TEXT,
+               Revenue DECIMAL(12, 2),
+               Headquarters TEXT,
+               UNIQUE (BrandName, Country) -- Compound Unique Key
+            )''')
+
+# Create Shoes table
+c.execute('''CREATE TABLE IF NOT EXISTS Shoes (
+               ShoeID INTEGER PRIMARY KEY,
+               ShoeName TEXT NOT NULL,
+               ShoeType TEXT,
+               ShoeSize REAL,
+               Price DECIMAL(10, 2),
+               Rating INTEGER,
+               BrandID INTEGER,
+               FOREIGN KEY (BrandID) REFERENCES Brands(BrandID)
+            )''')
+
+# Generate random data for Brands and Shoes
+for _ in range(1001):
+    brand_name = fake.company()
+    country = fake.country()
+    founding_year = fake.random_int(min=1800, max=2022)
+    ceo = fake.name()
+    revenue = fake.random.uniform(1000000.0, 1000000000.0)
+    headquarters = fake.city()
+
+    c.execute("INSERT OR IGNORE INTO Brands (BrandName, Country, FoundingYear, CEO, Revenue, Headquarters) VALUES (?, ?, ?, ?, ?, ?)",
+              (brand_name, country, founding_year, ceo, revenue, headquarters))
+
+    brand_id = c.lastrowid  # Retrieve the last inserted row id
+
+    shoe_name = fake.catch_phrase()
+    shoe_type = fake.word()
+    shoe_size = fake.random.uniform(6.0, 13.0)
+    price = fake.random.uniform(50.0, 300.0)
+    rating = fake.random_int(min=1, max=5)
+
+    c.execute("INSERT INTO Shoes (ShoeName, ShoeType, ShoeSize, Price, Rating, BrandID) VALUES (?, ?, ?, ?, ?, ?)",
+              (shoe_name, shoe_type, shoe_size, price, rating, brand_id))
+
+conn.commit()
+conn.close()
